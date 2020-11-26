@@ -71,10 +71,12 @@ def cleanup():
 
 cmd = """
     rm -f /tmp/screens.*.jpg
-    for i in $(seq -w 1 999999); do
+    i=0
+    while true; do
         path=/tmp/screens.$i.jpg
         maim -g 1920x1080 -m 5 -f jpg > $path
         echo $path
+        i=$((i+1))
     done
 """
 
@@ -86,25 +88,30 @@ def screenshotter():
 
 def main(crt: 'ssl.crt' = None,
          key: 'ssl.key' = None,
-         auth: 'shared secret to be passed as url param ?auth=...' = None,
+         auth: 'shared secret: https://localhost:8080?auth=AUTH' = None,
          port=8080):
-    state['auth'] = auth
+    """
+    screenshare by using maim to stream jpgs to a web browser
+    """
     try:
         subprocess.check_output('which maim', shell=True)
     except:
         print('fatal: maim not found: github.com/naelstrof/maim')
         sys.exit(1)
-    if crt and key:
-        options = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        options.load_cert_chain(crt, key)
     else:
-        options = None
-    app = web.app(routes)
-    server = tornado.httpserver.HTTPServer(app, ssl_options=options)
-    server.listen(port)
-    pool.thread.new(screenshotter)
-    pool.thread.new(cleanup)
-    tornado.ioloop.IOLoop.current().start()
+        state['auth'] = auth
+        if crt and key:
+            options = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            options.load_cert_chain(crt, key)
+        else:
+            options = None
+        app = web.app(routes)
+        server = tornado.httpserver.HTTPServer(app, ssl_options=options)
+        server.listen(port)
+        pool.thread.new(screenshotter)
+        pool.thread.new(cleanup)
+        print('starting screenshare on port:', port)
+        tornado.ioloop.IOLoop.current().start()
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
