@@ -1,5 +1,4 @@
 argh
-tornado
 git+https://github.com/nathants/py-util
 git+https://github.com/nathants/py-pool
 git+https://github.com/nathants/py-web
