@@ -3,7 +3,6 @@
 import os
 import sys
 import argh
-import functools
 import collections
 import subprocess
 import time
@@ -26,14 +25,14 @@ async def handler(request: web.Request) -> web.Response:
                     'body': f.read().replace('AUTH', auth or 'AUTH')}
 
 async def js_handler(request: web.Request) -> web.Response:
-    with open('axios.min.js') as f:
-        return {'code': 200,
-                'body': f.read()}
-
-@functools.lru_cache(maxsize=128)
-def img(name):
-    with open(name, 'rb') as f:
-        return f.read()
+    auth = state['auth']
+    if auth and [auth] != request['query'].get('auth', []):
+        return {'code': 401,
+                'body': '401'}
+    else:
+        with open('axios.min.js') as f:
+            return {'code': 200,
+                    'body': f.read()}
 
 async def img_handler(request: web.Request) -> web.Response:
     auth = state['auth']
@@ -41,15 +40,9 @@ async def img_handler(request: web.Request) -> web.Response:
         return {'code': 401,
                 'body': '401'}
     else:
-        [last] = request['query']['last']
-        while True:
-            name = images[-1]
-            if last != name:
-                break
-            await tornado.gen.sleep(0)
+        _, img = images[-1]
         return {'code': 200,
-                'body': img(name),
-                'headers': {'name': name}}
+                'body': img}
 
 routes = [
     ('/',             {'get': handler}),
@@ -67,28 +60,30 @@ def cleanup():
         while len(images) > 100:
             to_delete.append(images.popleft())
         if to_delete:
-            subprocess.check_call(['rm', *to_delete])
+            subprocess.check_call(['rm', *[path for path, _img in to_delete]])
 
 cmd = """
     rm -f /tmp/screens.*.jpg
     i=0
     while true; do
         path=/tmp/screens.$i.jpg
-        maim -g 1920x1080 -m 5 -f jpg > $path
+        maim -g {crop} -m 5 -f jpg > $path
         echo $path
         i=$((i+1))
     done
 """
 
 @util.misc.exceptions_kill_pid
-def screenshotter():
-    for line in subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout:
-        line = line.decode().rstrip()
-        images.append(line)
+def screenshotter(crop):
+    for path in subprocess.Popen(cmd.format(crop=crop), shell=True, stdout=subprocess.PIPE).stdout:
+        path = path.decode().rstrip()
+        with open(path, 'rb') as f:
+            images.append((path, f.read()))
 
 def main(crt: 'ssl.crt' = None,
          key: 'ssl.key' = None,
          auth: 'shared secret: https://localhost:8080?auth=AUTH' = None,
+         crop = '1920x1080',
          port=8080):
     """
     screenshare by using maim to stream jpgs to a web browser
@@ -108,7 +103,7 @@ def main(crt: 'ssl.crt' = None,
         app = web.app(routes)
         server = tornado.httpserver.HTTPServer(app, ssl_options=options)
         server.listen(port)
-        pool.thread.new(screenshotter)
+        pool.thread.new(screenshotter, crop=crop)
         pool.thread.new(cleanup)
         print('starting screenshare on port:', port)
         tornado.ioloop.IOLoop.current().start()

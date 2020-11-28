@@ -2,10 +2,9 @@
     <head>
         <script src="axios.min.js"></script>
         <script type="text/javascript">
-            var name = "init"
             function fetchImage() {
                 new Promise((res, rej) => {
-                    const url = "img.jpg?auth=AUTH&last=" + name + "&random=" + new Date().getTime()
+                    const url = "img.jpg?auth=AUTH&random=" + new Date().getTime()
                     axios.get(url, { responseType: 'blob' })
                         .then(function (response) {
                             name = response.headers.name
