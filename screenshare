@@ -94,7 +94,7 @@ def screenshotter(dimensions):
 def main(crt: 'ssl.crt' = None,
          key: 'ssl.key' = None,
          auth: 'shared secret: https://localhost:8080?auth=AUTH' = None,
-         millis_per_frame_client = 30,
+         millis: 'millis per frame in browser' = 30,
          dimensions = '1920x1080',
          port=8080):
     """
@@ -107,7 +107,7 @@ def main(crt: 'ssl.crt' = None,
         sys.exit(1)
     else:
         state['auth'] = auth
-        state['millis'] = millis_per_frame_client
+        state['millis'] = millis
         if crt and key:
             options = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
             options.load_cert_chain(crt, key)
