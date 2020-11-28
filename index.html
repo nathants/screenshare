@@ -1,15 +1,17 @@
 <html>
     <head>
-        <script src="axios.min.js"></script>
+        <script src="axios.min.js?auth=AUTH"></script>
         <script type="text/javascript">
+            var last = 0
             function fetchImage() {
                 new Promise((res, rej) => {
-                    const url = "img.jpg?auth=AUTH&random=" + new Date().getTime()
+                    const url = "img.jpg?auth=AUTH&random=" + Date.now()
                     axios.get(url, { responseType: 'blob' })
                         .then(function (response) {
-                            name = response.headers.name
                             document.images["screen"].src = URL.createObjectURL(response.data)
-                            res(fetchImage())
+                            const now = Date.now()
+                            setTimeout(fetchImage, Math.max(0, MILLIS_PER_FRAME - (now - last)))
+                            last = now
                         })
                         .catch(function (error) { console.log(error) })
                 })

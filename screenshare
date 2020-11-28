@@ -22,7 +22,9 @@ async def handler(request: web.Request) -> web.Response:
     else:
         with open('index.html') as f:
             return {'code': 200,
-                    'body': f.read().replace('AUTH', auth or 'AUTH')}
+                    'body': (f.read()
+                             .replace('AUTH', auth or 'AUTH')
+                             .replace('MILLIS_PER_FRAME', str(state['millis'])))}
 
 async def js_handler(request: web.Request) -> web.Response:
     auth = state['auth']
@@ -67,23 +69,33 @@ cmd = """
     i=0
     while true; do
         path=/tmp/screens.$i.jpg
-        maim -g {crop} -m 5 -f jpg > $path
+        maim -g {dimensions} -m 5 -f jpg > $path
         echo $path
         i=$((i+1))
     done
 """
 
 @util.misc.exceptions_kill_pid
-def screenshotter(crop):
-    for path in subprocess.Popen(cmd.format(crop=crop), shell=True, stdout=subprocess.PIPE).stdout:
+def screenshotter(dimensions):
+    last_print = time.monotonic()
+    last = time.monotonic()
+    for path in subprocess.Popen(cmd.format(dimensions=dimensions), shell=True, stdout=subprocess.PIPE).stdout:
+        # read image
         path = path.decode().rstrip()
         with open(path, 'rb') as f:
             images.append((path, f.read()))
+        # print fps every second
+        now = time.monotonic()
+        if now - last_print > 1:
+            last_print = now
+            print('fps:', 1 / (now - last))
+        last = now
 
 def main(crt: 'ssl.crt' = None,
          key: 'ssl.key' = None,
          auth: 'shared secret: https://localhost:8080?auth=AUTH' = None,
-         crop = '1920x1080',
+         millis_per_frame_client = 30,
+         dimensions = '1920x1080',
          port=8080):
     """
     screenshare by using maim to stream jpgs to a web browser
@@ -95,6 +107,7 @@ def main(crt: 'ssl.crt' = None,
         sys.exit(1)
     else:
         state['auth'] = auth
+        state['millis'] = millis_per_frame_client
         if crt and key:
             options = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
             options.load_cert_chain(crt, key)
@@ -103,7 +116,7 @@ def main(crt: 'ssl.crt' = None,
         app = web.app(routes)
         server = tornado.httpserver.HTTPServer(app, ssl_options=options)
         server.listen(port)
-        pool.thread.new(screenshotter, crop=crop)
+        pool.thread.new(screenshotter, dimensions=dimensions)
         pool.thread.new(cleanup)
         print('starting screenshare on port:', port)
         tornado.ioloop.IOLoop.current().start()
