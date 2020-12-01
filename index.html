@@ -2,17 +2,19 @@
     <head>
         <script src="axios.min.js?auth=AUTH"></script>
         <script type="text/javascript">
-            last = 0
+            var last = 0
             function fetchImage() {
-                url = "img.jpg?auth=AUTH&random=" + Date.now()
+                const url = "img.jpg?auth=AUTH&random=" + Date.now()
                 axios.get(url, { responseType: 'blob' })
                     .then(function (response) {
                         document.images["screen"].src = URL.createObjectURL(response.data)
-                        now = Date.now()
+                        const now = Date.now()
                         setTimeout(fetchImage, Math.max(0, MILLIS_PER_FRAME - (now - last)))
                         last = now
                     })
-                    .catch(function (error) { console.log(error) })
+                    .catch(function (error) {
+                        console.log(error)
+                    })
             }
             document.addEventListener("DOMContentLoaded", fetchImage)
         </script>
