@@ -55,20 +55,19 @@ routes = [
 images = collections.deque()
 
 cmd = """
-    id=$(xdotool getactivewindow)
     path=/tmp/screen.jpg
     while true; do
-        maim -i $id -m 6 -f jpg > $path.tmp
+        maim -g {dimensions} $id -m 6 -f jpg > $path.tmp
         mv -f $path.tmp $path
         echo
     done
 """
 
 @util.misc.exceptions_kill_pid
-def screenshotter():
+def screenshotter(dimensions):
     last_print = time.monotonic()
     last = time.monotonic()
-    for path in subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout:
+    for path in subprocess.Popen(cmd.format(dimensions=dimensions), shell=True, stdout=subprocess.PIPE).stdout:
         # print fps every second
         now = time.monotonic()
         if now - last_print > 1:
@@ -80,6 +79,7 @@ def main(crt: 'ssl.crt' = None,
          key: 'ssl.key' = None,
          auth: 'shared secret: https://localhost:8080?auth=AUTH' = None,
          millis: 'millis per frame in browser' = 30,
+         dimensions: 'maim dimensions for -g' = '1920x1080',
          port=8080):
     """
     screenshare by using maim to stream jpgs to a web browser
@@ -104,7 +104,7 @@ def main(crt: 'ssl.crt' = None,
     app = web.app(routes)
     server = tornado.httpserver.HTTPServer(app, ssl_options=options)
     server.listen(port)
-    pool.thread.new(screenshotter)
+    pool.thread.new(screenshotter, dimensions)
     print('starting screenshare on port:', port)
     tornado.ioloop.IOLoop.current().start()
 
