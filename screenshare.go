@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"bytes"
 	"fmt"
 	"image"
@@ -17,12 +18,26 @@ import (
 var lock sync.RWMutex
 var buffer bytes.Buffer
 var images = make(chan *image.RGBA)
-var auth = ""
-var millis = 30
+var auth string
+var millis int
 
 func router(ctx *fasthttp.RequestCtx) {
+	args := ctx.QueryArgs()
+	if auth != string(args.Peek("auth")) {
+		_, err := ctx.WriteString("bad ?auth=")
+		if err != nil {
+		    panic(err)
+		}
+		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+		return
+	}
 	if string(ctx.Method()) != "GET" {
-		panic("GET only")
+		_, err := ctx.WriteString("GET only")
+		if err != nil {
+		    panic(err)
+		}
+		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+		return
 	}
 	switch string(ctx.Path()) {
 	case "/":
@@ -41,6 +56,7 @@ func jsHandler(ctx *fasthttp.RequestCtx) {
 	}
 	ctx.SetContentType("text/javascript; charset=utf8")
 }
+
 func indexHandler(ctx *fasthttp.RequestCtx) {
 	val := index
 	val = strings.Replace(val, "AUTH", auth, -1)
@@ -62,47 +78,69 @@ func imageHandler(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/octet-stream")
 }
 
-func main() {
+func encoder() {
+	last_print := time.Now()
+	var buf bytes.Buffer
+	var count int64
+	for {
 
-	go func() {
-		bounds := screenshot.GetDisplayBounds(1)
-		for {
-			img, err := screenshot.CaptureRect(bounds)
-			if err != nil {
-				panic(err)
-			}
-			images <- img
+		// encode jpg
+		buf.Reset()
+		img := <-images
+		err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 75})
+		if err != nil {
+			panic(err)
 		}
-	}()
 
-	go func() {
-		start := time.Now()
-		last_print := time.Now()
-		var buf bytes.Buffer
-		for {
-			buf.Reset()
-			img := <-images
-			err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 75})
-			if err != nil {
-				panic(err)
-			}
-			lock.Lock()
-			buffer.Reset()
-			buffer.Write(buf.Bytes())
-			lock.Unlock()
-			now := time.Now()
-			if time.Since(last_print) > time.Second {
-				fps := int(1 / now.Sub(start).Seconds())
-				fmt.Println("fps:", fps)
-				last_print = now
-			}
-			start = now
+		// update image bytes
+		lock.Lock()
+		buffer.Reset()
+		buffer.Write(buf.Bytes())
+		lock.Unlock()
+
+		// print stats
+		count++
+		if time.Since(last_print) > time.Second {
+			fmt.Println("millis per frame:", time.Since(last_print).Milliseconds() / count)
+			last_print = time.Now()
+			count = 0
 		}
-	}()
 
-	err := fasthttp.ListenAndServe(":8080", router)
+	}
+}
+
+func capturer(display int) {
+	bounds := screenshot.GetDisplayBounds(display)
+	for {
+		img, err := screenshot.CaptureRect(bounds)
+		if err != nil {
+			panic(err)
+		}
+		images <- img
+	}
+}
+
+func flags() (int, int) {
+ 	display := flag.Int("d", 1, "display number")
+	port := flag.Int("p", 8080, "port")
+	_millis := flag.Int("m", 30, "millis per frame")
+	_auth := flag.String("a", "", "auth: https://localhost:8080?auth=AUTH")
+	flag.Parse()
+	auth = *_auth
+	millis = *_millis
+	return *display, *port
+}
+
+func serve(port int) {
+	err := fasthttp.ListenAndServe(fmt.Sprintf(":%d", port), router)
 	if err != nil {
 		log.Fatalf("Error in ListenAndServe: %s", err)
 	}
+}
 
+func main() {
+	display, port := flags()
+	go capturer(display)
+	go encoder()
+	serve(port)
 }
