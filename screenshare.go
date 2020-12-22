@@ -1,8 +1,8 @@
 package main
 
 import (
-	"flag"
 	"bytes"
+	"flag"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -15,18 +15,20 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-var lock sync.RWMutex
-var buffer bytes.Buffer
-var images = make(chan *image.RGBA)
-var auth string
-var millis int
+var (
+	lock   sync.RWMutex
+	buffer bytes.Buffer
+	auth   string
+	millis int
+	images = make(chan *image.RGBA, 1)
+)
 
 func router(ctx *fasthttp.RequestCtx) {
 	args := ctx.QueryArgs()
 	if auth != string(args.Peek("auth")) {
 		_, err := ctx.WriteString("bad ?auth=")
 		if err != nil {
-		    panic(err)
+			panic(err)
 		}
 		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
 		return
@@ -34,7 +36,7 @@ func router(ctx *fasthttp.RequestCtx) {
 	if string(ctx.Method()) != "GET" {
 		_, err := ctx.WriteString("GET only")
 		if err != nil {
-		    panic(err)
+			panic(err)
 		}
 		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
 		return
@@ -101,7 +103,7 @@ func encoder() {
 		// print stats
 		count++
 		if time.Since(last_print) > time.Second {
-			fmt.Println("millis per frame:", time.Since(last_print).Milliseconds() / count)
+			fmt.Println("millis per frame:", time.Since(last_print).Milliseconds()/count)
 			last_print = time.Now()
 			count = 0
 		}
@@ -121,7 +123,7 @@ func capturer(display int) {
 }
 
 func flags() (int, int) {
- 	display := flag.Int("d", 1, "display number")
+	display := flag.Int("d", 1, "display number")
 	port := flag.Int("p", 8080, "port")
 	_millis := flag.Int("m", 30, "millis per frame")
 	_auth := flag.String("a", "", "auth: https://localhost:8080?auth=AUTH")
