@@ -4,17 +4,20 @@
         <script type="text/javascript">
             var last = 0
             function fetchImage() {
-                const url = "img.jpg?auth=AUTH&random=" + Date.now()
-                axios.get(url, { responseType: 'blob' })
-                    .then(function (response) {
-                        document.images["screen"].src = URL.createObjectURL(response.data)
-                        const now = Date.now()
-                        setTimeout(fetchImage, Math.max(0, MILLIS_PER_FRAME - (now - last)))
-                        last = now
-                    })
-                    .catch(function (error) {
-                        console.log(error)
-                    })
+              const url = "img.jpg?auth=AUTH&random=" + Date.now()
+              axios.get(url, { responseType: 'blob' })
+                .then(function (response) {
+                  document.images["screen"].src = URL.createObjectURL(response.data)
+                  const now = Date.now()
+                  setTimeout(fetchImage, Math.max(0, MILLIS_PER_FRAME - (now - last)))
+                  last = now
+                })
+                .catch(function (error) {
+                  console.log(error)
+                  const now = Date.now()
+                  setTimeout(fetchImage, Math.max(0, MILLIS_PER_FRAME - (now - last)))
+                  last = now
+                })
             }
             document.addEventListener("DOMContentLoaded", fetchImage)
         </script>
