@@ -17,6 +17,9 @@ var index = `<!DOCTYPE html>
                     })
                     .catch(function (error) {
                         console.log(error)
+                        const now = Date.now()
+                        setTimeout(fetchImage, Math.max(0, MILLIS_PER_FRAME - (now - last)))
+                        last = now
                     })
             }
             document.addEventListener("DOMContentLoaded", fetchImage)
