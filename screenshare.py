@@ -1,5 +1,4 @@
 #!/usr/bin/env pypy3
-# type: ignore
 import os
 import sys
 import argh
@@ -57,7 +56,7 @@ images = collections.deque()
 cmd = """
     path=/tmp/screen.jpg
     while true; do
-        maim -g {dimensions} $id -m 6 -f jpg > $path.tmp
+        maim -g {dimensions} $id -m 7 -f jpg > $path.tmp
         mv -f $path.tmp $path
         echo
     done
@@ -68,42 +67,24 @@ def screenshotter(dimensions):
     last_print = time.monotonic()
     last = time.monotonic()
     for path in subprocess.Popen(cmd.format(dimensions=dimensions), shell=True, stdout=subprocess.PIPE).stdout:
-        # print fps every second
         now = time.monotonic()
         if now - last_print > 1:
             last_print = now
-            print('fps:', 1 / (now - last))
+            print('millis per frame:', int((now - last) * 1000))
         last = now
 
-def main(crt: 'ssl.crt' = None,
-         key: 'ssl.key' = None,
-         auth: 'shared secret: https://localhost:8080?auth=AUTH' = None,
-         millis: 'millis per frame in browser' = 30,
-         dimensions: 'maim dimensions for -g' = '1920x1080',
+def main(auth: 'shared secret: http://localhost:8080?auth=AUTH' = None, # type: ignore
+         millis: 'millis per frame in browser' = 30, # type: ignore
+         dimensions: 'maim dimensions for -g' = '1920x1080', # type: ignore
          port=8080):
-    """
-    screenshare by using maim to stream jpgs to a web browser
-    """
     try:
         subprocess.check_output('which maim', shell=True)
     except:
         print('fatal: maim not found: github.com/naelstrof/maim')
         sys.exit(1)
-    try:
-        subprocess.check_output('which xdotool', shell=True)
-    except:
-        print('fatal: xdotool not found')
-        sys.exit(1)
     state['auth'] = auth
     state['millis'] = millis
-    if crt and key:
-        options = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        options.load_cert_chain(crt, key)
-    else:
-        options = None
-    app = web.app(routes)
-    server = tornado.httpserver.HTTPServer(app, ssl_options=options)
-    server.listen(port)
+    web.app(routes).listen(port)
     pool.thread.new(screenshotter, dimensions)
     print('starting screenshare on port:', port)
     tornado.ioloop.IOLoop.current().start()
