@@ -63,7 +63,7 @@ screenshare.example.com  {
 >> sudo ./caddy run
 ```
 
-forward local traffic on 8080 to that server
+forward local traffic on 8080 to that server:
 
 ```bash
 >> ssh -R 8080:0.0.0.0:8080 $user@$server_ip
