@@ -11,7 +11,7 @@ ttyd isn't always enough.
 ## how
 
 ```bash
->> screenshare -h
+>> pypy3 screenshare.py -h
 usage: screenshare [-h] [-c CRT] [-k KEY] [-a AUTH] [-m MILLIS] [-d DIMENSIONS] [-p PORT]
 
     screenshare by using maim to stream jpgs to a web browser
