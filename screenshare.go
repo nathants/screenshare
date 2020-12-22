@@ -126,7 +126,7 @@ func flags() (int, int) {
 	display := flag.Int("d", 1, "display number")
 	port := flag.Int("p", 8080, "port")
 	_millis := flag.Int("m", 30, "millis per frame")
-	_auth := flag.String("a", "", "auth: https://localhost:8080?auth=AUTH")
+	_auth := flag.String("a", "", "auth: http://localhost:8080?auth=AUTH")
 	flag.Parse()
 	auth = *_auth
 	millis = *_millis

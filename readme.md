@@ -25,7 +25,7 @@ install and run screenshare on your laptop:
 >> ./screenshare -h
 Usage of ./screenshare:
   -a string
-        auth: https://localhost:8080?auth=AUTH
+        auth: http://localhost:8080?auth=AUTH
   -d int
         display number (default 1)
   -m int
