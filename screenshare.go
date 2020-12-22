@@ -116,7 +116,8 @@ func capturer(display int) {
 	for {
 		img, err := screenshot.CaptureRect(bounds)
 		if err != nil {
-			panic(err)
+			fmt.Println("error:", err)
+			time.Sleep(1)
 		}
 		images <- img
 	}
