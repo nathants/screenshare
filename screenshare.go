@@ -91,7 +91,9 @@ func encoder() {
 		img := <-images
 		err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 75})
 		if err != nil {
-			panic(err)
+			fmt.Println("error:", err)
+			time.Sleep(1 * time.Second)
+			continue
 		}
 
 		// update image bytes
@@ -117,7 +119,8 @@ func capturer(display int) {
 		img, err := screenshot.CaptureRect(bounds)
 		if err != nil {
 			fmt.Println("error:", err)
-			time.Sleep(1)
+			time.Sleep(1 * time.Second)
+			continue
 		}
 		images <- img
 	}
