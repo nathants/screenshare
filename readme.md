@@ -58,7 +58,7 @@ screenshare.example.com  {
 
 >> go get -u github.com/caddyserver/xcaddy/cmd/xcaddy
 
->> xcaddy build v2.0.1 --with github.com/sillygod/cdp-cache
+>> xcaddy build v2.2.1 --with github.com/sillygod/cdp-cache
 
 >> sudo ./caddy run
 ```
